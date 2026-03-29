@@ -1,11 +1,11 @@
+use crate::domain::{self, GuessingData, MatchState, RoundState};
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 
 pub const HOME_OPTION_COUNT: usize = 2;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Screen {
     Home,
-    Match,
+    Match(MatchState),
 }
 
 pub struct App {
@@ -33,25 +33,83 @@ pub fn handle_event(app: &mut App, event: Event) {
         return;
     }
 
-    match app.screen {
+    match &mut app.screen {
         Screen::Home => match key.code {
             KeyCode::Up => {
-                app.home_selected =
-                    (app.home_selected + HOME_OPTION_COUNT - 1) % HOME_OPTION_COUNT;
+                app.home_selected = (app.home_selected + HOME_OPTION_COUNT - 1) % HOME_OPTION_COUNT;
             }
             KeyCode::Down => {
                 app.home_selected = (app.home_selected + 1) % HOME_OPTION_COUNT;
             }
             KeyCode::Enter => match app.home_selected {
-                0 => app.screen = Screen::Match,
+                0 => {
+                    app.screen =
+                        Screen::Match(domain::MatchState::MatchInProgress(domain::MatchData::new()))
+                }
                 1 => app.should_quit = true,
                 _ => {}
             },
             _ => {}
         },
-        Screen::Match => match key.code {
-            KeyCode::Esc | KeyCode::Char('b') => app.screen = Screen::Home,
-            _ => {}
+        Screen::Match(m_state) => match m_state {
+            MatchState::MatchInProgress(m_data) => match key.code {
+                KeyCode::Esc => {
+                    app.screen = Screen::Home;
+                }
+                _ => match &mut m_data.current_round {
+                    RoundState::WordSelection(ws_data) => match key.code {
+                        KeyCode::Char(c) => {
+                            let c = c.to_ascii_lowercase();
+                            if c.is_ascii_alphabetic()
+                                && ws_data.input.len() < ws_data.word_length as usize
+                            {
+                                ws_data.input.push(c);
+                            }
+                        }
+                        KeyCode::Backspace => {
+                            ws_data.input.pop();
+                        }
+                        KeyCode::Enter => {
+                            //TODO: validate, commit, swap, turn
+                            if ws_data.input.len() == ws_data.word_length as usize {
+                                match ws_data.turn {
+                                    domain::Turn::PlayerOne => {
+                                        ws_data.player_one_word = Some(ws_data.input.clone());
+                                        ws_data.turn = domain::Turn::PlayerTwo;
+                                    }
+                                    domain::Turn::PlayerTwo => {
+                                        ws_data.player_two_word = Some(ws_data.input.clone());
+                                        ws_data.turn = domain::Turn::PlayerOne;
+                                    }
+                                }
+                                ws_data.input.clear();
+                            }
+                            //if both player words exist
+                            //copy relevant word selection state over to g_data
+                            //set roundState to Guessing(g_data)
+                            if ws_data.player_one_word.is_some()
+                                && ws_data.player_two_word.is_some()
+                            {
+                                let p1 = ws_data.player_one_word.take().unwrap();
+                                let p2 = ws_data.player_two_word.take().unwrap();
+                                let cur_turn = ws_data.turn;
+                                m_data.current_round = RoundState::Guessing(domain::GuessingData {
+                                    turn: cur_turn,
+                                    player_one_word: p1,
+                                    player_two_word: p2,
+                                    guessed_letters: std::collections::HashSet::new(),
+                                })
+                            }
+                        }
+                        _ => {}
+                    },
+                    RoundState::Guessing(_) => {}
+                    RoundState::Finished(_) => {}
+                },
+            },
+            MatchState::MatchFinised(_) => {
+                app.screen = Screen::Home;
+            }
         },
     }
 }
