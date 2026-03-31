@@ -1,0 +1,2 @@
+- [x] Esc to exit from homescreen
+- [ ] j and k for arrow keys
