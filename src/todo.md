@@ -1,2 +1,7 @@
-- [x] Esc to exit from homescreen
+- [ ] Esc to exit from homescreen
 - [ ] j and k for arrow keys
+- [ ] refactor ui
+- [ ] match lifecycle
+- [ ] refactor code
+- [ ] word validation
+- [ ] ai support

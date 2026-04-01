@@ -64,6 +64,7 @@ fn render_match(app: &App, frame: &mut Frame) {
         .constraints([
             Constraint::Length(1),
             Constraint::Length(1),
+            Constraint::Length(1),
             Constraint::Min(0),
         ])
         .split(frame.area());
@@ -93,21 +94,45 @@ fn render_match(app: &App, frame: &mut Frame) {
                     frame.render_widget(Paragraph::new(prompt), chunks[1]);
                 }
                 RoundState::Guessing(g_data) => {
-                    let masked_player_one_word =
-                        mask_word(&g_data.guessed_letters, &g_data.player_one_word);
-                    let masked_player_two_word =
-                        mask_word(&g_data.guessed_letters, &g_data.player_two_word);
-                    frame.render_widget(Paragraph::new(masked_player_one_word), chunks[0]);
-                    frame.render_widget(Paragraph::new(masked_player_two_word), chunks[1]);
+                    let player_turn = match g_data.turn {
+                        crate::domain::Turn::PlayerOne => "Press a key to guess (Player One)",
+                        crate::domain::Turn::PlayerTwo => "Press a key to guess (Player Two)",
+                    };
+
+                    let masked_player_one_word = format!(
+                        "Player One's Word: {}",
+                        mask_word(&g_data.guessed_letters, &g_data.player_one_word)
+                    );
+                    let masked_player_two_word = format!(
+                        "Player Two's Word: {}",
+                        mask_word(&g_data.guessed_letters, &g_data.player_two_word)
+                    );
+
+                    frame.render_widget(Paragraph::new(player_turn), chunks[0]);
+                    frame.render_widget(Paragraph::new(masked_player_one_word), chunks[1]);
+                    frame.render_widget(Paragraph::new(masked_player_two_word), chunks[2]);
                 }
-                RoundState::Finished(_) => {}
+                RoundState::Finished(result) => {
+                    let message = match result {
+                        crate::domain::RoundResult::Draw => "It's a draw".to_string(),
+                        crate::domain::RoundResult::Won(winner) => {
+                            format!("{} won", winner.player.name)
+                        }
+                    };
+
+                    frame.render_widget(message, chunks[0]);
+                    frame.render_widget(
+                        Paragraph::new("Press ENTER to start next round"),
+                        chunks[2],
+                    );
+                }
             },
             MatchState::MatchFinised(_) => {}
         },
         _ => {}
     }
 
-    frame.render_widget(Paragraph::new("Press ESC to leave"), chunks[2]); // I would like to have this pegged to the bottom of the terminal if possible
+    frame.render_widget(Paragraph::new("Press ESC to leave"), chunks[3]); // I would like to have this pegged to the bottom of the terminal if possible
 }
 
 fn mask_word(guessed: &HashSet<char>, word: &str) -> String {
