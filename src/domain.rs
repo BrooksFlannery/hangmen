@@ -27,6 +27,18 @@ pub enum RoundState {
     Finished(RoundResult),
 }
 
+impl RoundState {
+    pub fn new(starting_turn: Turn) -> Self {
+        RoundState::WordSelection(WordSelectionData {
+            turn: starting_turn,
+            word_length: rand::rng().random_range(3..=8),
+            input: String::new(),
+            player_one_word: None,
+            player_two_word: None,
+        })
+    }
+}
+
 pub enum RoundResult {
     Won(MatchParticipant),
     Draw,
@@ -44,25 +56,19 @@ impl MatchData {
         Self {
             player_one: MatchParticipant {
                 player: PlayerProfile {
-                    name: String::from("Player"),
+                    name: String::from("Player One"),
                 },
             },
             player_two: MatchParticipant {
                 player: PlayerProfile {
-                    name: String::from("Opponent"),
+                    name: String::from("Player Two"),
                 },
             },
             match_score: MatchScore {
                 player_one: 0,
                 player_two: 0,
             },
-            current_round: RoundState::WordSelection(WordSelectionData {
-                turn: Turn::PlayerOne,
-                word_length: rand::rng().random_range(3..=8),
-                input: String::new(), //is string new the correct thing here? instead of option? since input is a buffer and the player words are more set in stone?
-                player_one_word: None,
-                player_two_word: None,
-            }),
+            current_round: RoundState::new(Turn::PlayerOne),
         }
     }
 }
@@ -82,10 +88,12 @@ pub enum MatchState {
     MatchFinised(MatchFinishedData),
 }
 
+#[derive(Clone)]
 pub struct PlayerProfile {
     pub name: String,
 }
 
+#[derive(Clone)]
 pub struct MatchParticipant {
     pub player: PlayerProfile,
 }

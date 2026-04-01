@@ -1,4 +1,6 @@
-use crate::domain::{self, GuessingData, MatchState, RoundState};
+use std::collections::HashSet;
+
+use crate::domain::{self, GuessingData, MatchFinishedData, MatchState, PlayerProfile, RoundState};
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 
 pub const HOME_OPTION_COUNT: usize = 2;
@@ -70,7 +72,6 @@ pub fn handle_event(app: &mut App, event: Event) {
                             ws_data.input.pop();
                         }
                         KeyCode::Enter => {
-                            //TODO: validate, commit, swap, turn
                             if ws_data.input.len() == ws_data.word_length as usize {
                                 match ws_data.turn {
                                     domain::Turn::PlayerOne => {
@@ -84,9 +85,7 @@ pub fn handle_event(app: &mut App, event: Event) {
                                 }
                                 ws_data.input.clear();
                             }
-                            //if both player words exist
-                            //copy relevant word selection state over to g_data
-                            //set roundState to Guessing(g_data)
+
                             if ws_data.player_one_word.is_some()
                                 && ws_data.player_two_word.is_some()
                             {
@@ -103,8 +102,48 @@ pub fn handle_event(app: &mut App, event: Event) {
                         }
                         _ => {}
                     },
-                    RoundState::Guessing(_) => {}
-                    RoundState::Finished(_) => {}
+                    RoundState::Guessing(g_data) => match key.code {
+                        KeyCode::Char(c) => {
+                            let c = c.to_ascii_lowercase();
+                            if c.is_ascii_alphabetic() {
+                                g_data.guessed_letters.insert(c);
+                            }
+                            //Is this the rust way to do this?
+                            let player_one_won =
+                                check_win(&g_data.guessed_letters, &g_data.player_two_word);
+                            let player_two_won =
+                                check_win(&g_data.guessed_letters, &g_data.player_one_word);
+                            //Is this the rust way to do this?
+                            if player_one_won && player_two_won {
+                                m_data.current_round =
+                                    RoundState::Finished(domain::RoundResult::Draw);
+                            } else if player_one_won {
+                                m_data.current_round = RoundState::Finished(
+                                    domain::RoundResult::Won(m_data.player_one.clone()),
+                                )
+                            } else if player_two_won {
+                                m_data.current_round = RoundState::Finished(
+                                    domain::RoundResult::Won(m_data.player_two.clone()),
+                                )
+                            } else {
+                                match g_data.turn {
+                                    domain::Turn::PlayerOne => {
+                                        g_data.turn = domain::Turn::PlayerTwo;
+                                    }
+                                    domain::Turn::PlayerTwo => {
+                                        g_data.turn = domain::Turn::PlayerOne;
+                                    }
+                                }
+                            }
+                        }
+                        _ => {}
+                    },
+                    RoundState::Finished(result) => match key.code {
+                        KeyCode::Enter => {
+                            m_data.current_round = RoundState::new(domain::Turn::PlayerOne);
+                        }
+                        _ => {}
+                    },
                 },
             },
             MatchState::MatchFinised(_) => {
@@ -112,4 +151,10 @@ pub fn handle_event(app: &mut App, event: Event) {
             }
         },
     }
+}
+
+fn check_win(guessed: &HashSet<char>, word: &str) -> bool {
+    word.chars()
+        .filter(|c| c.is_ascii_alphabetic())
+        .all(|c| guessed.contains(&c.to_ascii_lowercase()))
 }
