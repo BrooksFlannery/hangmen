@@ -1,4 +1,5 @@
-- [ ] Esc to exit from homescreen
+- [x] Esc to exit from homescreen
+- [x] Footer
 - [ ] j and k for arrow keys
 - [ ] refactor ui
 - [ ] match lifecycle

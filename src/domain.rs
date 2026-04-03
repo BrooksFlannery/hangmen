@@ -1,7 +1,7 @@
 use rand::RngExt;
 use std::collections::HashSet;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum Turn {
     PlayerOne,
     PlayerTwo,
@@ -144,17 +144,21 @@ impl MatchData {
 
         if let RoundState::Guessing(g_data) = &mut self.current_round {
             g_data.guessed_letters.insert(c);
-            let player_one_won = word_fully_guessed(&g_data.guessed_letters, &g_data.player_two_word);
-            let player_two_won = word_fully_guessed(&g_data.guessed_letters, &g_data.player_one_word);
+            let player_one_won =
+                word_fully_guessed(&g_data.guessed_letters, &g_data.player_two_word);
+            let player_two_won =
+                word_fully_guessed(&g_data.guessed_letters, &g_data.player_one_word);
 
             if player_one_won && player_two_won {
                 self.current_round = RoundState::Finished(RoundResult::Draw);
             } else if player_one_won {
                 self.match_score.player_one += 1;
-                self.current_round = RoundState::Finished(RoundResult::Won(self.player_one.clone()));
+                self.current_round =
+                    RoundState::Finished(RoundResult::Won(self.player_one.clone()));
             } else if player_two_won {
                 self.match_score.player_two += 1;
-                self.current_round = RoundState::Finished(RoundResult::Won(self.player_two.clone()));
+                self.current_round =
+                    RoundState::Finished(RoundResult::Won(self.player_two.clone()));
             } else {
                 g_data.turn = match g_data.turn {
                     Turn::PlayerOne => Turn::PlayerTwo,
