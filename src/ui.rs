@@ -2,14 +2,14 @@ use std::collections::HashSet;
 
 use ratatui::{
     Frame,
-    layout::{Constraint, Direction, Layout},
+    layout::{Alignment, Constraint, Direction, Layout},
     style::Style,
     widgets::Paragraph,
 };
 
 use crate::{
     app::{App, Screen},
-    domain::{MatchState, RoundState},
+    domain::{self, MatchState, RoundState, Turn},
 };
 
 /// Home banner art (UTF-8); must stay in sync with `home_banner.txt` line count.
@@ -34,7 +34,7 @@ fn home_option_style(selected: bool) -> Style {
 fn render_home(app: &App, frame: &mut Frame) {
     let outer = Layout::default()
         .direction(Direction::Vertical)
-        .margin(1)
+        .vertical_margin(1)
         .constraints([Constraint::Min(0), Constraint::Length(1)])
         .split(frame.area());
 
@@ -44,7 +44,7 @@ fn render_home(app: &App, frame: &mut Frame) {
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .margin(1)
+        .vertical_margin(1)
         .constraints([
             Constraint::Length(HOME_BANNER_HEIGHT),
             Constraint::Length(1),
@@ -68,22 +68,36 @@ fn render_home(app: &App, frame: &mut Frame) {
         Paragraph::new("Bot vs Bot").style(home_option_style(app.home_selected == 2)),
         chunks[4],
     );
-    frame.render_widget(Paragraph::new("Press ESC to leave"), footer_area);
+    frame.render_widget(Paragraph::new("Press ESC to Quit"), footer_area);
 }
 
 fn render_match(app: &App, frame: &mut Frame) {
     let outer = Layout::default()
         .direction(Direction::Vertical)
-        .margin(1)
-        .constraints([Constraint::Min(0), Constraint::Length(1)])
+        .vertical_margin(1)
+        .constraints([
+            Constraint::Length(1),
+            Constraint::Min(0),
+            Constraint::Length(1),
+        ])
         .split(frame.area());
 
-    let main_area = outer[0];
-    let footer_area = outer[1];
+    let header_area = outer[0];
+    let main_area = outer[1];
+    let footer_area = outer[2];
+
+    let header_cols = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Length(10),
+            Constraint::Fill(1),
+            Constraint::Length(10),
+        ])
+        .split(header_area);
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .margin(1)
+        .vertical_margin(1)
         .constraints([
             Constraint::Length(1),
             Constraint::Length(1),
@@ -103,25 +117,29 @@ fn render_match(app: &App, frame: &mut Frame) {
                     let masked_word = format!("{}{}", ws_data.input, "_".repeat(remaining));
 
                     let prompt = if cur_len != max_len {
-                        format!("Write a secret word: {}", masked_word)
+                        "Write a Secret Word"
                     } else {
-                        format!("Press ENTER to play: {}", ws_data.input)
+                        "Press ENTER to Confirm"
                     };
 
-                    let player = match ws_data.turn {
-                        crate::domain::Turn::PlayerOne => "Player One",
-                        crate::domain::Turn::PlayerTwo => "Player Two",
-                    };
+                    frame.render_widget(
+                        Paragraph::new("Player One")
+                            .style(home_option_style(ws_data.turn == Turn::PlayerOne)),
+                        header_cols[0],
+                    );
+                    frame.render_widget(
+                        Paragraph::new("Player Two")
+                            .style(home_option_style(ws_data.turn == Turn::PlayerTwo)),
+                        header_cols[2],
+                    );
+                    frame.render_widget(
+                        Paragraph::new(prompt).alignment(Alignment::Center),
+                        header_cols[1],
+                    );
 
-                    frame.render_widget(Paragraph::new(player), chunks[0]);
-                    frame.render_widget(Paragraph::new(prompt), chunks[1]);
+                    frame.render_widget(Paragraph::new(masked_word), chunks[0]);
                 }
                 RoundState::Guessing(g_data) => {
-                    let player_turn = match g_data.turn {
-                        crate::domain::Turn::PlayerOne => "Press a key to guess (Player One)",
-                        crate::domain::Turn::PlayerTwo => "Press a key to guess (Player Two)",
-                    };
-
                     let masked_player_one_word = format!(
                         "Player One's Word: {}",
                         mask_word(&g_data.guessed_letters, &g_data.player_one_word)
@@ -131,22 +149,42 @@ fn render_match(app: &App, frame: &mut Frame) {
                         mask_word(&g_data.guessed_letters, &g_data.player_two_word)
                     );
 
-                    frame.render_widget(Paragraph::new(player_turn), chunks[0]);
+                    frame.render_widget(
+                        Paragraph::new("Player One")
+                            .style(home_option_style(g_data.turn == Turn::PlayerOne)),
+                        header_cols[0],
+                    );
+                    frame.render_widget(
+                        Paragraph::new("Press a KEY to Guess").alignment(Alignment::Center),
+                        header_cols[1],
+                    );
+                    frame.render_widget(
+                        Paragraph::new("Player Two")
+                            .style(home_option_style(g_data.turn == Turn::PlayerTwo)),
+                        header_cols[2],
+                    );
+
                     frame.render_widget(Paragraph::new(masked_player_one_word), chunks[1]);
                     frame.render_widget(Paragraph::new(masked_player_two_word), chunks[2]);
                 }
                 RoundState::Finished(result) => {
                     let message = match result {
-                        crate::domain::RoundResult::Draw => "It's a draw".to_string(),
+                        crate::domain::RoundResult::Draw => "This Round's a Draw".to_string(),
                         crate::domain::RoundResult::Won(winner) => {
-                            format!("{} won", winner.player.name)
+                            format!("{} Won the Round", winner.player.name)
                         }
                     };
 
-                    frame.render_widget(message, chunks[0]);
+                    frame.render_widget(Paragraph::new("Player One"), header_cols[0]);
+                    frame.render_widget(Paragraph::new("Player Two"), header_cols[2]);
+
                     frame.render_widget(
-                        Paragraph::new("Press ENTER to start next round"),
-                        chunks[2],
+                        Paragraph::new(message).alignment(Alignment::Center),
+                        chunks[0],
+                    );
+                    frame.render_widget(
+                        Paragraph::new("Press ENTER to Continue").alignment(Alignment::Center),
+                        header_cols[1],
                     );
                 }
             },
@@ -155,7 +193,7 @@ fn render_match(app: &App, frame: &mut Frame) {
         _ => {}
     }
 
-    frame.render_widget(Paragraph::new("Press ESC to leave"), footer_area);
+    frame.render_widget(Paragraph::new("Press ESC to Return Home"), footer_area);
 }
 
 fn mask_word(guessed: &HashSet<char>, word: &str) -> String {
