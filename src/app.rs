@@ -1,7 +1,7 @@
 use crate::domain::{self, MatchData, MatchState, RoundState};
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 
-pub const HOME_OPTION_COUNT: usize = 2;
+pub const HOME_OPTION_COUNT: usize = 3;
 
 pub enum Screen {
     Home,
@@ -54,18 +54,22 @@ impl App {
 
     fn handle_home_key(&mut self, code: KeyCode) {
         match code {
+            KeyCode::Esc => {
+                self.should_quit = true;
+            }
             KeyCode::Up => {
-                self.home_selected = (self.home_selected + HOME_OPTION_COUNT - 1) % HOME_OPTION_COUNT;
+                self.home_selected =
+                    (self.home_selected + HOME_OPTION_COUNT - 1) % HOME_OPTION_COUNT;
             }
             KeyCode::Down => {
                 self.home_selected = (self.home_selected + 1) % HOME_OPTION_COUNT;
             }
             KeyCode::Enter => match self.home_selected {
                 0 => {
-                    self.screen =
-                        Screen::Match(domain::MatchState::MatchInProgress(domain::MatchData::new()));
+                    self.screen = Screen::Match(domain::MatchState::MatchInProgress(
+                        domain::MatchData::new(),
+                    ));
                 }
-                1 => self.should_quit = true,
                 _ => {}
             },
             _ => {}
