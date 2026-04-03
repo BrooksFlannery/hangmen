@@ -32,6 +32,14 @@ fn home_option_style(selected: bool) -> Style {
 }
 
 fn render_home(app: &App, frame: &mut Frame) {
+    let outer = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(1)
+        .constraints([Constraint::Min(0), Constraint::Length(1)])
+        .split(frame.area());
+
+    let main_area = outer[0];
+    let footer_area = outer[1];
     let banner = HOME_BANNER.trim_end_matches(&['\n', '\r'][..]);
 
     let chunks = Layout::default()
@@ -42,22 +50,37 @@ fn render_home(app: &App, frame: &mut Frame) {
             Constraint::Length(1),
             Constraint::Length(1),
             Constraint::Length(1),
+            Constraint::Length(1),
             Constraint::Min(0),
         ])
         .split(frame.area());
 
     frame.render_widget(Paragraph::new(banner).style(Style::new()), chunks[0]);
     frame.render_widget(
-        Paragraph::new("Play").style(home_option_style(app.home_selected == 0)),
+        Paragraph::new("Player vs Player").style(home_option_style(app.home_selected == 0)),
         chunks[2],
     );
     frame.render_widget(
-        Paragraph::new("Exit").style(home_option_style(app.home_selected == 1)),
+        Paragraph::new("Player vs Bot").style(home_option_style(app.home_selected == 1)),
         chunks[3],
     );
+    frame.render_widget(
+        Paragraph::new("Bot vs Bot").style(home_option_style(app.home_selected == 2)),
+        chunks[4],
+    );
+    frame.render_widget(Paragraph::new("Press ESC to leave"), footer_area);
 }
 
 fn render_match(app: &App, frame: &mut Frame) {
+    let outer = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(1)
+        .constraints([Constraint::Min(0), Constraint::Length(1)])
+        .split(frame.area());
+
+    let main_area = outer[0];
+    let footer_area = outer[1];
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .margin(1)
@@ -67,7 +90,7 @@ fn render_match(app: &App, frame: &mut Frame) {
             Constraint::Length(1),
             Constraint::Min(0),
         ])
-        .split(frame.area());
+        .split(main_area);
 
     match &app.screen {
         Screen::Match(m_state) => match m_state {
@@ -132,7 +155,7 @@ fn render_match(app: &App, frame: &mut Frame) {
         _ => {}
     }
 
-    frame.render_widget(Paragraph::new("Press ESC to leave"), chunks[3]); // I would like to have this pegged to the bottom of the terminal if possible
+    frame.render_widget(Paragraph::new("Press ESC to leave"), footer_area);
 }
 
 fn mask_word(guessed: &HashSet<char>, word: &str) -> String {
@@ -145,5 +168,5 @@ fn mask_word(guessed: &HashSet<char>, word: &str) -> String {
                 '_'
             }
         })
-        .collect() //what is .collect, what is |c|, how does map work in rust
+        .collect()
 }

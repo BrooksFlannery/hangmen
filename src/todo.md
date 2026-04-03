@@ -2,6 +2,6 @@
 - [ ] j and k for arrow keys
 - [ ] refactor ui
 - [ ] match lifecycle
-- [ ] refactor code
 - [ ] word validation
 - [ ] ai support
+- [ ] display guessed letters
