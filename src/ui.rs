@@ -9,7 +9,7 @@ use ratatui::{
 
 use crate::{
     app::{App, Screen},
-    domain::{MatchData, MatchState, RoundState},
+    domain::{MatchState, RoundState},
 };
 
 /// Home banner art (UTF-8); must stay in sync with `home_banner.txt` line count.

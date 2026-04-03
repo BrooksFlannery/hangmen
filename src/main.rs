@@ -34,7 +34,7 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &mut App) -> 
         terminal.draw(|f| ui::render(app, f))?;
 
         let event = event::read()?;
-        app::handle_event(app, event);
+        app.handle_event(event);
 
         if app.should_quit {
             break;
