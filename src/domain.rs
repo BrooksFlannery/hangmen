@@ -143,7 +143,10 @@ impl MatchData {
         }
 
         if let RoundState::Guessing(g_data) = &mut self.current_round {
-            g_data.guessed_letters.insert(c);
+            let was_new_guess = g_data.guessed_letters.insert(c);
+            if !was_new_guess {
+                return;
+            }
             let player_one_won =
                 word_fully_guessed(&g_data.guessed_letters, &g_data.player_two_word);
             let player_two_won =
