@@ -49,8 +49,11 @@ fn render_keyboard_ascii(guessed: &HashSet<char>) -> String {
     let mut lines = Vec::with_capacity(5);
     lines.push("┌─────────────────────┐".to_string());
 
-    for (letters, indent) in [("qwertyuiop", 1usize), ("asdfghjkl", 2usize), ("zxcvbnm", 3usize)]
-    {
+    for (letters, indent) in [
+        ("qwertyuiop", 1usize),
+        ("asdfghjkl", 2usize),
+        ("zxcvbnm", 3usize),
+    ] {
         let inner = row_line(letters, indent, guessed);
         let pad = INNER_WIDTH.saturating_sub(inner.len());
         lines.push(format!("│{}{}│", inner, " ".repeat(pad)));
@@ -180,8 +183,11 @@ fn render_match(app: &App, frame: &mut Frame) {
                         "Press ENTER to Confirm"
                     };
 
+                    let p1 = format!("Player One: {}", m_data.match_score.player_one);
+                    let p2 = format!("Player Two: {}", m_data.match_score.player_two);
+
                     frame.render_widget(
-                        Paragraph::new("Player One")
+                        Paragraph::new(p1)
                             .style(home_option_style(ws_data.turn == Turn::PlayerOne))
                             .alignment(Alignment::Center),
                         left_col[0],
@@ -191,7 +197,7 @@ fn render_match(app: &App, frame: &mut Frame) {
                         center_col[0],
                     );
                     frame.render_widget(
-                        Paragraph::new("Player Two")
+                        Paragraph::new(p2)
                             .style(home_option_style(ws_data.turn == Turn::PlayerTwo))
                             .alignment(Alignment::Center),
                         right_col[0],
@@ -229,8 +235,11 @@ fn render_match(app: &App, frame: &mut Frame) {
                     let masked_player_two_word =
                         mask_word(&g_data.guessed_letters, &g_data.player_two_word);
 
+                    let p1 = format!("Player One: {}", m_data.match_score.player_one);
+                    let p2 = format!("Player Two: {}", m_data.match_score.player_two);
+
                     frame.render_widget(
-                        Paragraph::new("Player One")
+                        Paragraph::new(p1)
                             .style(home_option_style(g_data.turn == Turn::PlayerOne))
                             .alignment(Alignment::Center),
                         left_col[0],
@@ -240,7 +249,7 @@ fn render_match(app: &App, frame: &mut Frame) {
                         center_col[1],
                     );
                     frame.render_widget(
-                        Paragraph::new("Player Two")
+                        Paragraph::new(p2)
                             .style(home_option_style(g_data.turn == Turn::PlayerTwo))
                             .alignment(Alignment::Center),
                         right_col[0],
@@ -287,8 +296,11 @@ fn render_match(app: &App, frame: &mut Frame) {
                         }
                     };
 
+                    let p1 = format!("Player One: {}", m_data.match_score.player_one);
+                    let p2 = format!("Player Two: {}", m_data.match_score.player_two);
+
                     frame.render_widget(
-                        Paragraph::new("Player One").alignment(Alignment::Center),
+                        Paragraph::new(p1).alignment(Alignment::Center),
                         left_col[0],
                     );
                     frame.render_widget(
@@ -296,7 +308,7 @@ fn render_match(app: &App, frame: &mut Frame) {
                         center_col[0],
                     );
                     frame.render_widget(
-                        Paragraph::new("Player Two").alignment(Alignment::Center),
+                        Paragraph::new(p2).alignment(Alignment::Center),
                         right_col[0],
                     );
                     frame.render_widget(
