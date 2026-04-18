@@ -9,7 +9,7 @@ use ratatui::{
 
 use crate::{
     app::{App, Screen},
-    domain::{self, MatchState, RoundState, Turn},
+    domain::{MatchState, RoundState, Turn},
 };
 
 /// Home banner art (UTF-8); must stay in sync with `home_banner.txt` line count.
@@ -22,6 +22,42 @@ pub fn render(app: &App, frame: &mut Frame) {
         Screen::Home => render_home(app, frame),
         Screen::Match(_) => render_match(app, frame),
     }
+}
+
+fn render_keyboard_ascii(guessed: &HashSet<char>) -> String {
+    const INNER_WIDTH: usize = 21;
+
+    fn row_line(letters: &str, indent: usize, guessed: &HashSet<char>) -> String {
+        const SEP: char = ' ';
+        let mut out = String::new();
+
+        out.push_str(&" ".repeat(indent));
+        for (i, c) in letters.chars().enumerate() {
+            if i > 0 {
+                out.push(SEP);
+            }
+            if guessed.contains(&c) {
+                out.push(' ');
+            } else {
+                out.push(c);
+            }
+        }
+
+        out
+    }
+
+    let mut lines = Vec::with_capacity(5);
+    lines.push("┌─────────────────────┐".to_string());
+
+    for (letters, indent) in [("qwertyuiop", 1usize), ("asdfghjkl", 2usize), ("zxcvbnm", 3usize)]
+    {
+        let inner = row_line(letters, indent, guessed);
+        let pad = INNER_WIDTH.saturating_sub(inner.len());
+        lines.push(format!("│{}{}│", inner, " ".repeat(pad)));
+    }
+
+    lines.push("└─────────────────────┘".to_string());
+    lines.join("\n")
 }
 
 fn home_option_style(selected: bool) -> Style {
@@ -110,31 +146,28 @@ fn render_match(app: &App, frame: &mut Frame) {
         ])
         .split(main_area);
 
-    let rows = [
-        Constraint::Length(1),
-        Constraint::Length(1),
-        Constraint::Length(1),
-    ];
-
-    let left_col = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(rows)
-        .split(main_cols[0]);
-
-    let center_col = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(rows)
-        .split(main_cols[1]);
-
-    let right_col = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(rows)
-        .split(main_cols[2]);
-
     match &app.screen {
         Screen::Match(m_state) => match m_state {
             MatchState::MatchInProgress(m_data) => match &m_data.current_round {
                 RoundState::WordSelection(ws_data) => {
+                    let rows = [
+                        Constraint::Length(1),
+                        Constraint::Length(1),
+                        Constraint::Length(1),
+                    ];
+                    let left_col = Layout::default()
+                        .direction(Direction::Vertical)
+                        .constraints(rows)
+                        .split(main_cols[0]);
+                    let center_col = Layout::default()
+                        .direction(Direction::Vertical)
+                        .constraints(rows)
+                        .split(main_cols[1]);
+                    let right_col = Layout::default()
+                        .direction(Direction::Vertical)
+                        .constraints(rows)
+                        .split(main_cols[2]);
+
                     let max_len = ws_data.word_length as usize;
                     let cur_len = ws_data.input.len();
                     let remaining = max_len - cur_len;
@@ -170,6 +203,26 @@ fn render_match(app: &App, frame: &mut Frame) {
                     );
                 }
                 RoundState::Guessing(g_data) => {
+                    let rows = [
+                        Constraint::Length(1),
+                        Constraint::Length(1),
+                        Constraint::Length(1),
+                        Constraint::Length(5),
+                        Constraint::Min(0),
+                    ];
+                    let left_col = Layout::default()
+                        .direction(Direction::Vertical)
+                        .constraints(rows)
+                        .split(main_cols[0]);
+                    let center_col = Layout::default()
+                        .direction(Direction::Vertical)
+                        .constraints(rows)
+                        .split(main_cols[1]);
+                    let right_col = Layout::default()
+                        .direction(Direction::Vertical)
+                        .constraints(rows)
+                        .split(main_cols[2]);
+
                     let masked_player_one_word =
                         mask_word(&g_data.guessed_letters, &g_data.player_one_word);
 
@@ -184,7 +237,7 @@ fn render_match(app: &App, frame: &mut Frame) {
                     );
                     frame.render_widget(
                         Paragraph::new("Press a KEY to Guess").alignment(Alignment::Center),
-                        center_col[0],
+                        center_col[1],
                     );
                     frame.render_widget(
                         Paragraph::new("Player Two")
@@ -195,14 +248,38 @@ fn render_match(app: &App, frame: &mut Frame) {
 
                     frame.render_widget(
                         Paragraph::new(masked_player_one_word).alignment(Alignment::Center),
-                        left_col[1],
+                        left_col[2],
                     );
                     frame.render_widget(
                         Paragraph::new(masked_player_two_word).alignment(Alignment::Center),
-                        right_col[1],
+                        right_col[2],
+                    );
+
+                    let keyboard = render_keyboard_ascii(&g_data.guessed_letters);
+                    frame.render_widget(
+                        Paragraph::new(keyboard).alignment(Alignment::Center),
+                        center_col[3],
                     );
                 }
                 RoundState::Finished(result) => {
+                    let rows = [
+                        Constraint::Length(1),
+                        Constraint::Length(1),
+                        Constraint::Length(1),
+                    ];
+                    let left_col = Layout::default()
+                        .direction(Direction::Vertical)
+                        .constraints(rows)
+                        .split(main_cols[0]);
+                    let center_col = Layout::default()
+                        .direction(Direction::Vertical)
+                        .constraints(rows)
+                        .split(main_cols[1]);
+                    let right_col = Layout::default()
+                        .direction(Direction::Vertical)
+                        .constraints(rows)
+                        .split(main_cols[2]);
+
                     let message = match result {
                         crate::domain::RoundResult::Draw => "This Round's a Draw".to_string(),
                         crate::domain::RoundResult::Won(winner) => {
