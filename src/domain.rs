@@ -1,6 +1,9 @@
 use rand::RngExt;
 use std::collections::HashSet;
 
+/// First player to reach this score wins the match.
+pub const MATCH_WIN_SCORE: u8 = 3;
+
 #[derive(Clone, Copy, PartialEq)]
 pub enum Turn {
     PlayerOne,
@@ -82,7 +85,6 @@ impl RoundState {
         })
     }
 }
-
 
 pub enum RoundResult {
     Won(MatchParticipant),
@@ -173,8 +175,22 @@ impl MatchData {
     }
 
     pub fn round_finished_enter(&mut self) {
+        if self.match_winner_if_any().is_some() {
+            return;
+        }
         if let RoundState::Finished(_) = &self.current_round {
             self.current_round = RoundState::new(Turn::PlayerOne);
+        }
+    }
+
+    /// Returns a clone of the match winner when either score is at or above [`MATCH_WIN_SCORE`].
+    pub fn match_winner_if_any(&self) -> Option<MatchParticipant> {
+        if self.match_score.player_one >= MATCH_WIN_SCORE {
+            Some(self.player_one.clone())
+        } else if self.match_score.player_two >= MATCH_WIN_SCORE {
+            Some(self.player_two.clone())
+        } else {
+            None
         }
     }
 }
