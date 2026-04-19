@@ -1,17 +1,18 @@
-use crate::domain::{self, MatchData, MatchState, RoundState};
+use crate::domain::{self, MatchData, MatchFinishedData, MatchState, RoundState};
 use crossterm::event::{Event, KeyCode, KeyEventKind};
-
-pub const HOME_OPTION_COUNT: usize = 3;
 
 pub enum Screen {
     Home,
+    Rules,
     Match(MatchState),
 }
+
+pub const HOME_MENU_LEN: usize = 2;
 
 pub struct App {
     pub screen: Screen,
     pub should_quit: bool,
-    /// Index into the Home menu: 0 = Start Match, 1 = Exit.
+    /// Home menu: 0 = Start Game, 1 = Rules.
     pub home_selected: usize,
 }
 
@@ -37,12 +38,25 @@ impl App {
     fn handle_key(&mut self, code: KeyCode) {
         match &mut self.screen {
             Screen::Home => self.handle_home_key(code),
+            Screen::Rules => {
+                if code == KeyCode::Esc {
+                    self.screen = Screen::Home;
+                }
+            }
             Screen::Match(m_state) => match m_state {
                 MatchState::MatchInProgress(m_data) => {
                     if code == KeyCode::Esc {
                         self.screen = Screen::Home;
                     } else {
                         Self::handle_match_in_progress(m_data, code);
+                        if let Some(winner) = m_data.match_winner_if_any() {
+                            let match_data =
+                                std::mem::replace(m_data, domain::MatchData::new());
+                            *m_state = MatchState::MatchFinised(MatchFinishedData {
+                                match_data,
+                                winner,
+                            });
+                        }
                     }
                 }
                 MatchState::MatchFinised(_) => {
@@ -58,17 +72,19 @@ impl App {
                 self.should_quit = true;
             }
             KeyCode::Up => {
-                self.home_selected =
-                    (self.home_selected + HOME_OPTION_COUNT - 1) % HOME_OPTION_COUNT;
+                self.home_selected = (self.home_selected + HOME_MENU_LEN - 1) % HOME_MENU_LEN;
             }
             KeyCode::Down => {
-                self.home_selected = (self.home_selected + 1) % HOME_OPTION_COUNT;
+                self.home_selected = (self.home_selected + 1) % HOME_MENU_LEN;
             }
             KeyCode::Enter => match self.home_selected {
                 0 => {
                     self.screen = Screen::Match(domain::MatchState::MatchInProgress(
                         domain::MatchData::new(),
                     ));
+                }
+                1 => {
+                    self.screen = Screen::Rules;
                 }
                 _ => {}
             },
